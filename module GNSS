@@ -68,5 +68,4 @@ def fit_all_velocities(folder, pattern, data_type):
             data = site+rate
             df.loc[filename] = data
         return df
-    return df
 
