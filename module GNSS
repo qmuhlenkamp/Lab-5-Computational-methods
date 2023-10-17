@@ -15,7 +15,12 @@ def fit_timeseries(tlist, ylist):
         return a + b*x
     disp,dispcov = scipy.optimize.curve_fit(my_line,tlist,ylist,p0=[0,0])
     return disp[1], np.sqrt(dispcov[1,1])
-    
+
+def fit_tide_gauge(filename):
+    data=pd.read_csv(filename, delimiter=';', header=None)
+    rate, ratecov = fit_timeseries(data[0],data[1])
+    return rate
+
 def fit_velocities(filename):
     data=pd.read_csv(filename, delim_whitespace=True)
     e_predicted, ecov = fit_timeseries(data['yyyy.yyyy'],data['__east(m)'])
@@ -25,24 +30,42 @@ def fit_velocities(filename):
 
 def get_coordinates(filename):
     data=pd.read_csv(filename, delim_whitespace=True)
-    site = filename.split('\\')[-1].split('.')[0]       #  probabilmente devo migliorare come viene diviso il nome della funzione
     av_lat = np.average(data['_latitude(deg)'])
     av_long = np.average(data['_longitude(deg)'])
     av_elev = np.average(data['__height(m)'])
-    return site, av_lat, av_long, av_elev
+    return av_lat, av_long, av_elev
 
+def get_sitename (filename, data_type):
+    if data_type == 'GNSS':
+        data=pd.read_csv(filename, delim_whitespace=True)
+        site = filename.split('\\')[-1].split('.')[0]
+        return site
+    if data_type == 'tide':
+        data=pd.read_csv(filename, delimiter=';', header=None)
+        site = filename.split('_')[-1].split('.')[0]
+        return site
 
-def fit_all_velocities(folder, pattern):
-    
-    columns = ['Site', 'Latitude(deg)', 'Longitude(deg)', 'Elevation(m)', 'v_east(m/yr)', 'v_east_uncert',
-              'v_north(m/yr)', 'v_north_uncert', 'v_up(m/yr)', 'v_up_uncert']
-    df = pd.DataFrame(columns=columns)
-    files = glob.glob(folder+pattern)
-    for filename in files:
-        #site=get_sitename(filename)
-        coor = get_coordinates(filename)
-        V = fit_velocities(filename)
-        data = coor+V
-        df.loc[filename] = data
-    return df
+def fit_all_velocities(folder, pattern, data_type):
+    if data_type == 'GNSS':
+        columns = ['Site', 'Latitude(deg)', 'Longitude(deg)', 'Elevation(m)', 'v_east(m/yr)', 'v_east_uncert',
+                   'v_north(m/yr)', 'v_north_uncert', 'v_up(m/yr)', 'v_up_uncert']
+        df = pd.DataFrame(columns=columns)
+        files = glob.glob(folder+pattern)
+        for filename in files:
+            site = (get_sitename(filename, data_type),) #converting into a tuple
+            coor = get_coordinates(filename)
+            V = fit_velocities(filename)
+            data = site+coor+V
+            df.loc[filename] = data
+        return df
+    if data_type == 'tide':
+        columns = ['Site', 'SL rate of change(mm/yr)']
+        df = pd.DataFrame(columns=columns)
+        files = glob.glob(folder+pattern)
+        for filename in files:
+            site = (get_sitename(filename, data_type),) # they are all tuple now
+            rate = (fit_tide_gauge(filename),)
+            data = site+rate
+            df.loc[filename] = data
+        return df
 
