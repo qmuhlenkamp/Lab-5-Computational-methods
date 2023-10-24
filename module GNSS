@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
 
 # Creating a module to interact with GNSS timeseries
 import scipy.optimize
@@ -68,4 +63,18 @@ def fit_all_velocities(folder, pattern, data_type):
             data = site+rate
             df.loc[filename] = data
         return df
-
+def makeArrows(filename):
+    dataframe = GNSS.fit_all_velocities(filename,'*','GNSS')
+    east = dataframe['v_east(m/yr)']
+    north = dataframe['v_north(m/yr)']
+    up = dataframe['v_up(m/yr)']
+    lat = dataframe['Latitude(deg)']
+    lon=dataframe['Longitude(deg)']
+    
+    
+    #lat,lon,elev = get_coordinates(filename)
+    #print(lat,lon)
+    plt.quiver(lon,lat,east,north)
+    plt.show
+                
+makeArrows('lab5/timeseries/timeseries\\')
